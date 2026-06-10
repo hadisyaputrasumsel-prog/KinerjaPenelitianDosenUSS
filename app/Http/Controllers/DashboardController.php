@@ -293,6 +293,24 @@ class DashboardController extends Controller
         return response()->json(["success" => false, "message" => "Profile not found on Google Scholar"]);
     }
 
+    public function crawlSinta(\Illuminate\Http\Request $request)
+    {
+        // Execute the standalone scrape_uss.php script
+        $scriptPath = base_path('scrape_uss.php');
+        if (!file_exists($scriptPath)) {
+            return response()->json(["success" => false, "message" => "Scraper script not found."]);
+        }
+
+        // We run it via shell_exec
+        $output = shell_exec('php ' . escapeshellarg($scriptPath) . ' 2>&1');
+        
+        return response()->json([
+            "success" => true, 
+            "message" => "Proses sinkronisasi SINTA berhasil dijalankan.",
+            "output" => $output
+        ]);
+    }
+
     public function updateLecturer(\Illuminate\Http\Request $request)
     {
         $id = $request->input('id');

@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" href="/favicon.svg" type="image/x-icon">
+    <link rel="icon" href="/favicon.png" type="image/png">
     <style>
         :root {
             --primary: #177a8c;
