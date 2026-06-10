@@ -13,3 +13,4 @@ Route::get('/accreditation', [DashboardController::class, 'accreditation'])->nam
 Route::get('/crawl-scholar', [DashboardController::class, 'crawlScholar'])->name('crawl.scholar');
 Route::post('/crawl-sinta', [DashboardController::class, 'crawlSinta'])->name('crawl.sinta');
 Route::post('/update-lecturer', [DashboardController::class, 'updateLecturer'])->name('lecturer.update');
+Route::post('/sync-lecturer-sinta', [DashboardController::class, 'syncLecturerSinta'])->name('lecturer.sync.sinta');

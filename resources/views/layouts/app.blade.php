@@ -233,8 +233,8 @@
 
                 <div style="margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;">
                     ${sintaId ? `
-                        <button onclick="window.open('https://sinta.kemdiktisaintek.go.id/authors/profile/${sintaId}', '_blank')" class="glass glass-hover" style="width: 100%; padding: 1rem; text-align: center; background: #22c55e; color: white; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer;">
-                            <i class="fas fa-external-link-alt"></i> Buka Profil SINTA
+                        <button onclick="window.openSintaAndSync('${lecturer.id}', '${sintaId}')" class="glass glass-hover" style="width: 100%; padding: 1rem; text-align: center; background: #22c55e; color: white; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer;">
+                            <i class="fas fa-external-link-alt"></i> Buka Profil SINTA & Sync
                         </button>
                         <button onclick="window.handleSintaSearch('${lecturer.id}', '${lecturer.name}', true)" class="glass glass-hover" style="width: 100%; padding: 1rem; text-align: center; background: var(--primary); color: white; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer;">
                             <i class="fas fa-search"></i> Cari Ulang & Update ID SINTA
@@ -266,6 +266,39 @@
             `;
 
             modalContainer.style.display = 'flex';
+        };
+
+        window.openSintaAndSync = function(id, sintaId) {
+            window.open(`https://sinta.kemdiktisaintek.go.id/authors/profile/${sintaId}`, '_blank');
+            
+            const confirmContainer = document.getElementById('sinta-confirm-container');
+            const statusEl = document.getElementById('sinta-detection-status');
+            const actionsEl = document.getElementById('sinta-confirm-actions');
+            
+            confirmContainer.style.display = 'block';
+            statusEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Mensinkronisasi data metrik dari SINTA...`;
+            if (actionsEl) actionsEl.style.display = 'none';
+
+            fetch('/sync-lecturer-sinta', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    statusEl.innerHTML = `<i class="fas fa-check-circle" style="color: #22c55e;"></i> Sinkronisasi berhasil! Merefresh data...`;
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    statusEl.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> ${data.message || 'Gagal sinkronisasi.'}`;
+                }
+            })
+            .catch(() => {
+                statusEl.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Terjadi kesalahan saat sinkronisasi.`;
+            });
         };
 
         window.handleSintaSearch = function(id, name, force = false) {

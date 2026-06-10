@@ -71,6 +71,41 @@ while(true) {
         $imgNode = $xpath->query('.//img[contains(@class, "avatar")]', $item)->item(0);
         $imageUrl = $imgNode ? $imgNode->getAttribute('src') : null;
 
+        $scopusDocs = 0;
+        $scholarCitations = 0;
+        $hIndex = 0;
+        $scopusHIndex = 0;
+
+        if ($sintaId > 0) {
+            $profileUrl = "https://sinta.kemdiktisaintek.go.id/authors/profile/$sintaId";
+            $htmlProfile = @file_get_contents($profileUrl, false, $context);
+            if ($htmlProfile) {
+                $domP = new DOMDocument();
+                @$domP->loadHTML($htmlProfile);
+                $xpathP = new DOMXPath($domP);
+                
+                $trs = $xpathP->query('//table//tr');
+                foreach ($trs as $tr) {
+                    $tds = $xpathP->query('.//td', $tr);
+                    if ($tds->length >= 4) {
+                        $label = trim($tds->item(0)->textContent);
+                        $scopusVal = (int) str_replace(',', '', trim($tds->item(1)->textContent));
+                        $gscholarVal = (int) str_replace(',', '', trim($tds->item(2)->textContent));
+                        
+                        if ($label == 'Article') {
+                            $scopusDocs = $scopusVal;
+                        } elseif ($label == 'Citation') {
+                            $scholarCitations = $gscholarVal;
+                        } elseif ($label == 'H-Index') {
+                            $scopusHIndex = $scopusVal;
+                            $hIndex = $gscholarVal;
+                        }
+                    }
+                }
+            }
+            sleep(1); // Avoid too many rapid requests
+        }
+
         $lecturers[] = [
             'name' => $name,
             'sintaId' => $sintaId,
@@ -78,10 +113,10 @@ while(true) {
             'image_url' => $imageUrl,
             'sintaOverall' => $sintaOverall,
             'sinta3Yr' => $sinta3Yr,
-            'scholar' => 0,
-            'scopus' => 0,
-            'scopusHIndex' => 0,
-            'hIndex' => 0
+            'scholar' => $scholarCitations,
+            'scopus' => $scopusDocs,
+            'scopusHIndex' => $scopusHIndex,
+            'hIndex' => $hIndex
         ];
     }
     
@@ -108,7 +143,11 @@ if (count($lecturers) > 0) {
                 'prodi' => $l['prodi'],
                 'image_url' => $l['image_url'],
                 'sintaOverall' => $l['sintaOverall'],
-                'sinta3Yr' => $l['sinta3Yr']
+                'sinta3Yr' => $l['sinta3Yr'],
+                'scholar' => $l['scholar'],
+                'scopus' => $l['scopus'],
+                'scopusHIndex' => $l['scopusHIndex'],
+                'hIndex' => $l['hIndex']
             ]
         );
     }

@@ -339,4 +339,82 @@ class DashboardController extends Controller
 
         return response()->json(["success" => true]);
     }
+    public function syncLecturerSinta(\Illuminate\Http\Request $request)
+    {
+        $id = $request->input('id');
+        $lecturer = \Illuminate\Support\Facades\DB::connection('mysql')->table('lecturers')->where('id', $id)->first();
+
+        if (!$lecturer || !$lecturer->sintaId) {
+            return response()->json(["success" => false, "message" => "Dosen tidak ditemukan atau belum memiliki SINTA ID."]);
+        }
+
+        $sintaId = $lecturer->sintaId;
+        $profileUrl = "https://sinta.kemdiktisaintek.go.id/authors/profile/$sintaId";
+        
+        $options = [
+            "http" => [
+                "method" => "GET",
+                "header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n" .
+                            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+            ],
+            "ssl" => [
+                "verify_peer" => false,
+                "verify_peer_name" => false,
+            ]
+        ];
+        $context = stream_context_create($options);
+        $htmlProfile = @file_get_contents($profileUrl, false, $context);
+
+        if (!$htmlProfile) {
+            return response()->json(["success" => false, "message" => "Gagal mengambil profil dari SINTA."]);
+        }
+
+        $domP = new \DOMDocument();
+        @$domP->loadHTML($htmlProfile);
+        $xpathP = new \DOMXPath($domP);
+        
+        $scopusDocs = 0;
+        $scholarCitations = 0;
+        $hIndex = 0;
+        $scopusHIndex = 0;
+
+        $trs = $xpathP->query('//table//tr');
+        foreach ($trs as $tr) {
+            $tds = $xpathP->query('.//td', $tr);
+            if ($tds->length >= 4) {
+                $label = trim($tds->item(0)->textContent);
+                $scopusVal = (int) str_replace(',', '', trim($tds->item(1)->textContent));
+                $gscholarVal = (int) str_replace(',', '', trim($tds->item(2)->textContent));
+                
+                if ($label == 'Article') {
+                    $scopusDocs = $scopusVal;
+                } elseif ($label == 'Citation') {
+                    $scholarCitations = $gscholarVal;
+                } elseif ($label == 'H-Index') {
+                    $scopusHIndex = $scopusVal;
+                    $hIndex = $gscholarVal;
+                }
+            }
+        }
+
+        \Illuminate\Support\Facades\DB::connection('mysql')->table('lecturers')
+            ->where('id', $id)
+            ->update([
+                'scholar' => $scholarCitations,
+                'scopus' => $scopusDocs,
+                'scopusHIndex' => $scopusHIndex,
+                'hIndex' => $hIndex
+            ]);
+
+        return response()->json([
+            "success" => true, 
+            "message" => "Data berhasil disinkronisasi",
+            "data" => [
+                'scholar' => $scholarCitations,
+                'scopus' => $scopusDocs,
+                'scopusHIndex' => $scopusHIndex,
+                'hIndex' => $hIndex
+            ]
+        ]);
+    }
 }
