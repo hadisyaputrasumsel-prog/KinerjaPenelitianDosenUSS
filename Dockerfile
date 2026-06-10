@@ -1,12 +1,3 @@
-# Stage 1: Build Node assets
-FROM node:20 AS node_builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Stage 2: Build PHP App
 FROM php:8.3-apache
 
 # Install dependencies
@@ -39,16 +30,13 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . /var/www/html
 
-# Copy built assets from node_builder
-COPY --from=node_builder /app/public/build /var/www/html/public/build
-
 # Create .env from example if it doesn't exist
 RUN cp .env.example .env
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Setup laravel (composer, cache permissions)
+# Setup laravel (composer)
 RUN composer install --no-interaction --optimize-autoloader --no-dev
 
 # Change permissions
