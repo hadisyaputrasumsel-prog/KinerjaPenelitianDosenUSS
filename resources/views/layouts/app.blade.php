@@ -262,6 +262,37 @@
                             <button onclick="window.updateStatus('${lecturer.id}', 'Aktif')" style="background: #22c55e; color: white; border: none; border-radius: 8px; padding: 0.6rem 1rem; flex: 1; cursor: pointer; font-weight: 700; font-size: 0.85rem;">Aktif</button>
                         </div>
                     </div>
+
+                    <div style="margin-top: 1.5rem; background: rgba(0,0,0,0.02); padding: 1rem; border-radius: 10px; border: 1px solid var(--border-glass);">
+                        <div style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.8rem; color: var(--text-main);">Update ID Profil Eksternal</div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem;">
+                            <div>
+                                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                                    <span>Scopus ID</span>
+                                    ${lecturer.scopusId ? `<a href="https://www.scopus.com/authid/detail.uri?authorId=${lecturer.scopusId}" target="_blank" style="color: var(--primary); text-decoration: none;"><i class="fas fa-external-link-alt"></i> Buka</a>` : ''}
+                                </label>
+                                <input type="text" id="input-scopus-id" value="${lecturer.scopusId || ''}" placeholder="Cth: 5720..." style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                                    <span>Garuda ID</span>
+                                    ${lecturer.garudaId ? `<a href="https://garuda.kemdikbud.go.id/author/view/${lecturer.garudaId}" target="_blank" style="color: var(--primary); text-decoration: none;"><i class="fas fa-external-link-alt"></i> Buka</a>` : ''}
+                                </label>
+                                <input type="text" id="input-garuda-id" value="${lecturer.garudaId || ''}" placeholder="Cth: 12345..." style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
+                            </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                                    <span>Google Scholar ID</span>
+                                    ${lecturer.scholarId ? `<a href="https://scholar.google.com/citations?user=${lecturer.scholarId}" target="_blank" style="color: var(--primary); text-decoration: none;"><i class="fas fa-external-link-alt"></i> Buka</a>` : ''}
+                                </label>
+                                <input type="text" id="input-scholar-id" value="${lecturer.scholarId || ''}" placeholder="Cth: hnqwGugAAAAJ" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
+                            </div>
+                        </div>
+                        <button onclick="window.saveExternalIds('${lecturer.id}')" style="width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                            <i class="fas fa-save"></i> Simpan ID Eksternal
+                        </button>
+                    </div>
                 </div>
             `;
 
@@ -416,10 +447,6 @@
         };
 
         window.updateStatus = function(id, status) {
-            const savedStatuses = JSON.parse(localStorage.getItem('lecturerStatuses') || '{}');
-            savedStatuses[id] = status;
-            localStorage.setItem('lecturerStatuses', JSON.stringify(savedStatuses));
-            
             fetch('/update-lecturer', {
                 method: 'POST',
                 headers: {
@@ -431,10 +458,42 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    alert('Status dosen berhasil diperbarui di server!');
+                    alert('Status dosen berhasil diperbarui!');
                     location.reload();
                 } else {
                     alert('Gagal memperbarui status di server.');
+                }
+            })
+            .catch(() => {
+                alert('Terjadi kesalahan saat menghubungi server.');
+            });
+        };
+
+        window.saveExternalIds = function(id) {
+            const scopusId = document.getElementById('input-scopus-id').value;
+            const garudaId = document.getElementById('input-garuda-id').value;
+            const scholarId = document.getElementById('input-scholar-id').value;
+
+            fetch('/update-lecturer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ 
+                    id: id, 
+                    scopusId: scopusId,
+                    garudaId: garudaId,
+                    scholarId: scholarId
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('ID Eksternal berhasil disimpan!');
+                    location.reload();
+                } else {
+                    alert('Gagal menyimpan ID Eksternal.');
                 }
             })
             .catch(() => {

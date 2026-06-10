@@ -328,6 +328,9 @@ class DashboardController extends Controller
         $data = [];
         if ($status) $data['status'] = $status;
         if ($sintaId) $data['sintaId'] = $sintaId;
+        if ($request->has('scopusId')) $data['scopusId'] = $request->input('scopusId');
+        if ($request->has('garudaId')) $data['garudaId'] = $request->input('garudaId');
+        if ($request->has('scholarId')) $data['scholarId'] = $request->input('scholarId');
 
         if (empty($data)) {
             return response()->json(["success" => false, "message" => "No data to update"]);
