@@ -1,4 +1,10 @@
 <?php
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+use Illuminate\Support\Facades\DB;
+
 $affId = 8263;
 $page = 1;
 $lecturers = [];
@@ -19,6 +25,11 @@ while(true) {
     ];
     $context = stream_context_create($options);
     $html = @file_get_contents($url, false, $context);
+
+    if (empty($html)) {
+        echo "Gagal mengambil data dari halaman $page (Mungkin diblokir oleh SINTA/Cloudflare atau halaman kosong). Berhenti.\n";
+        break;
+    }
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
@@ -82,5 +93,22 @@ while(true) {
     sleep(1);
 }
 
-file_put_contents("database/data/lecturers.json", json_encode($lecturers, JSON_PRETTY_PRINT));
+// Save to JSON as backup
+file_put_contents(base_path("database/data/lecturers.json"), json_encode($lecturers, JSON_PRETTY_PRINT));
 echo "Saved " . count($lecturers) . " lecturers to lecturers.json\n";
+
+// Upsert to Database
+echo "Menyimpan ke Database...\n";
+foreach ($lecturers as $l) {
+    DB::table('lecturers')->updateOrInsert(
+        ['sintaId' => $l['sintaId']],
+        [
+            'name' => $l['name'],
+            'prodi' => $l['prodi'],
+            'image_url' => $l['image_url'],
+            'sintaOverall' => $l['sintaOverall'],
+            'sinta3Yr' => $l['sinta3Yr']
+        ]
+    );
+}
+echo "Selesai memperbarui database!\n";
