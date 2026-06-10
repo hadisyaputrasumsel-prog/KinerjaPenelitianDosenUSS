@@ -1,4 +1,4 @@
-FROM php:8.2-apache
+FROM php:8.3-apache
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -32,19 +32,21 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . /var/www/html
 
+# Create .env from example if it doesn't exist
+RUN cp .env.example .env
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Setup laravel (composer, npm, cache permissions)
-RUN composer install --optimize-autoloader --no-dev
+RUN composer install --no-interaction --optimize-autoloader --no-dev
 RUN npm install
 RUN npm run build
 
 # Change permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.env
 
 # Generate key and link storage
-# Note: Ideally key should be passed as env var, but for a standalone build we can run it here
 RUN php artisan key:generate || true
 
 EXPOSE 80
