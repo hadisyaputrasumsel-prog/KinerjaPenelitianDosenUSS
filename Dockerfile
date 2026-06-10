@@ -1,3 +1,12 @@
+# Stage 1: Build Node assets
+FROM node:20 AS node_builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Stage 2: Build PHP App
 FROM php:8.3-apache
 
 # Install dependencies
@@ -8,9 +17,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     zip \
-    unzip \
-    nodejs \
-    npm
+    unzip
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -32,16 +39,17 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . /var/www/html
 
+# Copy built assets from node_builder
+COPY --from=node_builder /app/public/build /var/www/html/public/build
+
 # Create .env from example if it doesn't exist
 RUN cp .env.example .env
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Setup laravel (composer, npm, cache permissions)
+# Setup laravel (composer, cache permissions)
 RUN composer install --no-interaction --optimize-autoloader --no-dev
-RUN npm install
-RUN npm run build
 
 # Change permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/.env
