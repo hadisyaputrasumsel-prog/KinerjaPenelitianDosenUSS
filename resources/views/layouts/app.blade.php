@@ -289,14 +289,88 @@
                                 <input type="text" id="input-scholar-id" value="${lecturer.scholarId || ''}" placeholder="Cth: hnqwGugAAAAJ" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
                             </div>
                         </div>
-                        <button onclick="window.saveExternalIds('${lecturer.id}')" style="width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                        <button onclick="window.saveExternalIds('${lecturer.id}')" style="width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; margin-bottom: 0.5rem;">
                             <i class="fas fa-save"></i> Simpan ID Eksternal
                         </button>
+                        <button onclick="window.syncPublications('${lecturer.id}')" style="width: 100%; padding: 0.8rem; background: #6366f1; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem;">
+                            <i class="fas fa-cloud-download-alt"></i> Tarik Artikel & Jurnal dari Eksternal
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 1.5rem;">
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-main);">Daftar Publikasi Terakhir</h4>
+                        <div id="publications-container" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glass); border-radius: 8px; padding: 0.5rem;">
+                            <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Memuat publikasi...</div>
+                        </div>
                     </div>
                 </div>
             `;
 
             modalContainer.style.display = 'flex';
+            window.loadPublications(lecturer.id);
+        };
+
+        window.loadPublications = function(id) {
+            const container = document.getElementById('publications-container');
+            fetch('/lecturer/' + id + '/publications')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data.length > 0) {
+                        let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+                        res.data.forEach(pub => {
+                            html += `
+                                <li style="padding: 0.5rem; border-bottom: 1px solid var(--border-glass);">
+                                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">
+                                        ${pub.url ? `<a href="${pub.url}" target="_blank" style="text-decoration: none; color: inherit;">${pub.title}</a>` : pub.title}
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 0.2rem;">
+                                        <span>${pub.source} (${pub.year})</span>
+                                        <span><i class="fas fa-quote-right"></i> ${pub.citations} sitasi</span>
+                                    </div>
+                                </li>
+                            `;
+                        });
+                        html += '</ul>';
+                        container.innerHTML = html;
+                    } else {
+                        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Belum ada data artikel. Silakan tarik data dari Eksternal.</div>';
+                    }
+                }).catch(e => {
+                    container.innerHTML = '<div style="text-align: center; color: red; font-size: 0.85rem; padding: 1rem;">Gagal memuat publikasi.</div>';
+                });
+        };
+
+        window.syncPublications = function(id) {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sedang Menarik Data...';
+            btn.disabled = true;
+
+            fetch('/sync-publications', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if(data.success) {
+                    alert(data.message);
+                    window.loadPublications(id);
+                } else {
+                    alert('Gagal: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan koneksi saat menarik data');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
         };
 
         window.openSintaAndSync = function(id, sintaId) {

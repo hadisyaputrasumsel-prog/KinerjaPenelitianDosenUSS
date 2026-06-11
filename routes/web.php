@@ -14,3 +14,5 @@ Route::get('/crawl-scholar', [DashboardController::class, 'crawlScholar'])->name
 Route::post('/crawl-sinta', [DashboardController::class, 'crawlSinta'])->name('crawl.sinta');
 Route::post('/update-lecturer', [DashboardController::class, 'updateLecturer'])->name('lecturer.update');
 Route::post('/sync-lecturer-sinta', [DashboardController::class, 'syncLecturerSinta'])->name('lecturer.sync.sinta');
+Route::post('/sync-publications', [DashboardController::class, 'syncPublications'])->name('lecturer.sync.publications');
+Route::get('/lecturer/{id}/publications', [DashboardController::class, 'getPublications'])->name('lecturer.publications');

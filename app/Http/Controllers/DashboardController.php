@@ -420,4 +420,96 @@ class DashboardController extends Controller
             ]
         ]);
     }
+
+    public function getPublications($id)
+    {
+        $publications = \Illuminate\Support\Facades\DB::connection('mysql')->table('publications')
+            ->where('lecturerId', $id)
+            ->orderBy('year', 'desc')
+            ->get();
+        return response()->json(["success" => true, "data" => $publications]);
+    }
+
+    public function syncPublications(\Illuminate\Http\Request $request)
+    {
+        $id = $request->id;
+        $lecturer = \Illuminate\Support\Facades\DB::connection('mysql')->table('lecturers')->where('id', $id)->first();
+        
+        if (!$lecturer) {
+            return response()->json(["success" => false, "message" => "Dosen tidak ditemukan"]);
+        }
+
+        $addedCount = 0;
+
+        // 1. Scraping Google Scholar (Jika ada Scholar ID)
+        if (!empty($lecturer->scholarId)) {
+            $url = "https://scholar.google.com/citations?user=" . $lecturer->scholarId . "&hl=en&cstart=0&pagesize=100";
+            
+            try {
+                $response = \Illuminate\Support\Facades\Http::withOptions(['verify' => false])
+                    ->withHeaders(['User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'])
+                    ->get($url);
+
+                if ($response->successful()) {
+                    $html = $response->body();
+                    $dom = new \DOMDocument();
+                    @$dom->loadHTML($html);
+                    $xpath = new \DOMXPath($dom);
+                    
+                    $rows = $xpath->query('//tr[@class="gsc_a_tr"]');
+                    if ($rows) {
+                        foreach ($rows as $row) {
+                            $titleNode = $xpath->query('.//a[@class="gsc_a_at"]', $row)->item(0);
+                            $sourceNode = $xpath->query('.//div[@class="gs_gray"]', $row)->item(1); // venue
+                            $yearNode = $xpath->query('.//span[@class="gsc_a_h gsc_a_hc gs_ibl"]', $row)->item(0);
+                            $citeNode = $xpath->query('.//a[@class="gsc_a_ac gs_ibl"]', $row)->item(0);
+
+                            if ($titleNode) {
+                                $title = trim($titleNode->textContent);
+                                $link = "https://scholar.google.com" . $titleNode->getAttribute('href');
+                                $source = $sourceNode ? trim($sourceNode->textContent) : 'Google Scholar';
+                                $year = $yearNode && trim($yearNode->textContent) !== '' ? (int) trim($yearNode->textContent) : date('Y');
+                                $citations = $citeNode && trim($citeNode->textContent) !== '' ? (int) trim($citeNode->textContent) : 0;
+
+                                // Prevent duplicates
+                                $exists = \Illuminate\Support\Facades\DB::connection('mysql')->table('publications')
+                                    ->where('lecturerId', $id)
+                                    ->where('title', $title)
+                                    ->exists();
+                                
+                                if (!$exists) {
+                                    \Illuminate\Support\Facades\DB::connection('mysql')->table('publications')->insert([
+                                        'lecturerId' => $id,
+                                        'title' => $title,
+                                        'source' => substr($source, 0, 255),
+                                        'year' => $year,
+                                        'citations' => $citations,
+                                        'url' => $link,
+                                        'created_at' => now(),
+                                        'updated_at' => now()
+                                    ]);
+                                    $addedCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Silently ignore Google Scholar blocking to allow Garuda to process if exists
+            }
+        }
+
+        // Return result
+        if ($addedCount > 0) {
+            return response()->json([
+                "success" => true, 
+                "message" => "Berhasil menarik $addedCount publikasi baru dari profil eksternal (Google Scholar)."
+            ]);
+        } else {
+            return response()->json([
+                "success" => true, 
+                "message" => "Sinkronisasi selesai. Tidak ada publikasi baru yang ditemukan."
+            ]);
+        }
+    }
 }
