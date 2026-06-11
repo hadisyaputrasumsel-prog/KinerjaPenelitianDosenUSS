@@ -324,10 +324,23 @@
                     if (res.success && res.data.length > 0) {
                         let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
                         res.data.forEach(pub => {
+                            let platformBadge = '';
+                            if (pub.url) {
+                                if (pub.url.includes('scholar.google.com')) {
+                                    platformBadge = '<span style="background: #eab308; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; vertical-align: middle;"><i class="fas fa-graduation-cap"></i> Scholar</span>';
+                                } else if (pub.url.includes('scopus.com')) {
+                                    platformBadge = '<span style="background: #f97316; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; vertical-align: middle;">Scopus</span>';
+                                } else if (pub.url.includes('garuda')) {
+                                    platformBadge = '<span style="background: #3b82f6; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; vertical-align: middle;">Garuda</span>';
+                                } else {
+                                    platformBadge = '<span style="background: #6b7280; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 5px; vertical-align: middle;">Lainnya</span>';
+                                }
+                            }
                             html += `
                                 <li style="padding: 0.5rem; border-bottom: 1px solid var(--border-glass);">
-                                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary);">
-                                        ${pub.url ? `<a href="${pub.url}" target="_blank" style="text-decoration: none; color: inherit;">${pub.title}</a>` : pub.title}
+                                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--primary); display: flex; align-items: flex-start; gap: 0.3rem;">
+                                        <div style="flex-shrink: 0; margin-top: 0.1rem;">${platformBadge}</div>
+                                        <div>${pub.url ? `<a href="${pub.url}" target="_blank" style="text-decoration: none; color: inherit;">${pub.title}</a>` : pub.title}</div>
                                     </div>
                                     <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 0.2rem;">
                                         <span>${pub.source} (${pub.year})</span>
