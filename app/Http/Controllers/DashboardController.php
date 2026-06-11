@@ -21,7 +21,7 @@ class DashboardController extends Controller
 
         // Calculate Stats
         $totalLecturers = count($lecturers);
-        $totalResearch = array_sum(array_column($lecturers, 'scholar')) + array_sum(array_column($lecturers, 'scopus'));
+        $totalResearch = \Illuminate\Support\Facades\DB::connection('mysql')->table('publications')->count();
         $avgSinta = $totalLecturers > 0 ? round(array_sum(array_column($lecturers, 'sintaOverall')) / $totalLecturers) : 0;
         $avgSinta3Yr = $totalLecturers > 0 ? round(array_sum(array_column($lecturers, 'sinta3Yr')) / $totalLecturers) : 0;
         
@@ -331,6 +331,7 @@ class DashboardController extends Controller
         if ($request->has('scopusId')) $data['scopusId'] = $request->input('scopusId');
         if ($request->has('garudaId')) $data['garudaId'] = $request->input('garudaId');
         if ($request->has('scholarId')) $data['scholarId'] = $request->input('scholarId');
+        if ($request->has('pengabdian')) $data['pengabdian'] = $request->input('pengabdian');
 
         if (empty($data)) {
             return response()->json(["success" => false, "message" => "No data to update"]);
