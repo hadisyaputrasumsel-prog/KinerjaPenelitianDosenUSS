@@ -58,6 +58,14 @@ while(true) {
         $prodi = $prodiNode ? trim(preg_replace('/<i[^>]*><\/i>/', '', $prodiNode->nodeValue)) : 'Belum Diketahui';
         $prodi = trim($prodi);
 
+        // Gunakan konfigurasi override prodi jika ada
+        $prodiConfig = config('prodi', []);
+        if (array_key_exists($sintaId, $prodiConfig)) {
+            $prodi = $prodiConfig[$sintaId];
+        } elseif (empty($prodi) || $prodi === 'Belum Diketahui') {
+            $prodi = 'Unknown';
+        }
+
         // Stats
         $statNodes = $xpath->query('.//div[contains(@class, "stat-num")]', $item);
         $sinta3Yr = 0;
@@ -75,11 +83,21 @@ while(true) {
         $scholarCitations = 0;
         $hIndex = 0;
         $scopusHIndex = 0;
+        $scholarId = null;
 
         if ($sintaId > 0) {
             $profileUrl = "https://sinta.kemdiktisaintek.go.id/authors/profile/$sintaId";
             $htmlProfile = @file_get_contents($profileUrl, false, $context);
             if ($htmlProfile) {
+                // Parse Scholar ID
+                if (preg_match('/scholar\.google\.[^\/]+\/citations\?user=([^&"\' ]+)/', $htmlProfile, $m)) {
+                    $scholarId = $m[1];
+                }
+
+                if ($scholarId && (!$imageUrl || str_contains(strtolower($imageUrl), 'default') || str_contains(strtolower($imageUrl), 'avatar'))) {
+                    $imageUrl = "https://scholar.googleusercontent.com/citations?view_op=view_photo&user=" . $scholarId . "&citpid=1";
+                }
+
                 $domP = new DOMDocument();
                 @$domP->loadHTML($htmlProfile);
                 $xpathP = new DOMXPath($domP);
@@ -109,6 +127,7 @@ while(true) {
         $lecturers[] = [
             'name' => $name,
             'sintaId' => $sintaId,
+            'scholarId' => $scholarId,
             'prodi' => $prodi,
             'image_url' => $imageUrl,
             'sintaOverall' => $sintaOverall,
@@ -140,6 +159,7 @@ if (count($lecturers) > 0) {
             ['sintaId' => $l['sintaId']],
             [
                 'name' => $l['name'],
+                'scholarId' => $l['scholarId'],
                 'prodi' => $l['prodi'],
                 'image_url' => $l['image_url'],
                 'sintaOverall' => $l['sintaOverall'],
