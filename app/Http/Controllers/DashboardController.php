@@ -330,8 +330,20 @@ class DashboardController extends Controller
         if ($sintaId) $data['sintaId'] = $sintaId;
         if ($request->has('scopusId')) $data['scopusId'] = $request->input('scopusId');
         if ($request->has('garudaId')) $data['garudaId'] = $request->input('garudaId');
-        if ($request->has('scholarId')) $data['scholarId'] = $request->input('scholarId');
+        
+        if ($request->has('scholarId')) {
+            $scholarId = $request->input('scholarId');
+            $data['scholarId'] = $scholarId;
+            
+            // Auto update image if current image is default
+            $lecturer = \Illuminate\Support\Facades\DB::connection('mysql')->table('lecturers')->where('id', $id)->first();
+            if ($scholarId && $lecturer && (!$lecturer->image_url || str_contains(strtolower($lecturer->image_url), 'default') || str_contains(strtolower($lecturer->image_url), 'avatar'))) {
+                $data['image_url'] = "https://scholar.googleusercontent.com/citations?view_op=view_photo&user=" . $scholarId . "&citpid=1";
+            }
+        }
+
         if ($request->has('pengabdian')) $data['pengabdian'] = $request->input('pengabdian');
+        if ($request->has('prodi')) $data['prodi'] = $request->input('prodi');
 
         if (empty($data)) {
             return response()->json(["success" => false, "message" => "No data to update"]);

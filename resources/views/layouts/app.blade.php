@@ -294,6 +294,12 @@
                                 </label>
                                 <input type="number" id="input-pengabdian" value="${lecturer.pengabdian || 0}" placeholder="0" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
                             </div>
+                            <div style="grid-column: 1 / -1;">
+                                <label style="font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                                    <span>Program Studi (Prodi)</span>
+                                </label>
+                                <input type="text" id="input-prodi" value="${lecturer.prodi || ''}" placeholder="Cth: Ilmu Komputer (S1)" style="width: 100%; padding: 0.6rem; border: 1px solid var(--border-glass); border-radius: 6px; font-size: 0.85rem;">
+                            </div>
                         </div>
                         <button onclick="window.saveExternalIds('${lecturer.id}')" style="width: 100%; padding: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; margin-bottom: 0.5rem;">
                             <i class="fas fa-save"></i> Simpan ID Eksternal
@@ -567,6 +573,7 @@
             const garudaId = document.getElementById('input-garuda-id').value;
             const scholarId = document.getElementById('input-scholar-id').value;
             const pengabdian = document.getElementById('input-pengabdian').value;
+            const prodi = document.getElementById('input-prodi').value;
 
             fetch('/update-lecturer', {
                 method: 'POST',
@@ -579,7 +586,8 @@
                     scopusId: scopusId,
                     garudaId: garudaId,
                     scholarId: scholarId,
-                    pengabdian: pengabdian
+                    pengabdian: pengabdian,
+                    prodi: prodi
                 })
             })
             .then(r => r.json())
